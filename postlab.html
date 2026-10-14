@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pocket Ledger – Student Expense Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['"Bricolage Grotesque"', 'sans-serif'],
+            body: ['"IBM Plex Sans"', 'sans-serif'],
+          },
+          colors: {
+            ink: '#14213D',
+            sea: '#0F766E',
+            coral: '#D9482B',
+            mist: '#EAF0EE',
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    body { font-family: 'IBM Plex Sans', sans-serif; }
+    .split-seg { transition: width .5s ease; }
+    @media (prefers-reduced-motion: reduce) { .split-seg { transition: none; } }
+    :focus-visible { outline: 3px solid #0F766E; outline-offset: 2px; }
+  </style>
+</head>
+
+<body class="bg-mist text-ink min-h-screen">
+  <div class="max-w-5xl mx-auto px-4 py-6 sm:py-10">
+
+    <!-- Header -->
+    <header class="mb-6">
+      <h1 class="font-display font-extrabold text-3xl sm:text-5xl tracking-tight">Pocket Ledger</h1>
+      <p class="mt-1 text-ink/70 max-w-prose">Track what comes in and what goes out, so you know how long your allowance lasts.</p>
+    </header>
+
+    <!-- Balance + split bar -->
+    <section aria-label="Summary" class="bg-ink text-white rounded-2xl p-5 sm:p-7 mb-6">
+      <p class="text-sm text-white/70">Balance</p>
+      <p id="balance" class="font-display font-bold text-4xl sm:text-6xl mt-1">₹0.00</p>
+
+      <div class="mt-5" role="img" aria-label="Share of income spent" id="splitWrap">
+        <div class="flex h-4 w-full rounded-full overflow-hidden bg-white/15">
+          <div id="segSpent" class="split-seg bg-coral h-full" style="width:0%"></div>
+          <div id="segLeft" class="split-seg bg-teal-300 h-full" style="width:0%"></div>
+        </div>
+        <div class="flex justify-between text-sm mt-2 text-white/80">
+          <span id="spentLabel">Spent 0%</span>
+          <span id="leftLabel">Left 0%</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-5">
+        <div class="rounded-xl bg-white/10 p-3">
+          <p class="text-sm text-white/70">Income</p>
+          <p id="income" class="font-semibold text-lg text-teal-300">₹0.00</p>
+        </div>
+        <div class="rounded-xl bg-white/10 p-3">
+          <p class="text-sm text-white/70">Expenses</p>
+          <p id="expense" class="font-semibold text-lg text-orange-300">₹0.00</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid lg:grid-cols-5 gap-6">
+
+      <!-- Form -->
+      <section class="lg:col-span-2 bg-white rounded-2xl p-5 self-start" aria-labelledby="addTitle">
+        <h2 id="addTitle" class="font-display font-bold text-xl mb-4">Add a transaction</h2>
+        <form id="txForm" class="space-y-3" novalidate>
+          <div>
+            <label for="desc" class="block text-sm font-medium mb-1">Description</label>
+            <input id="desc" type="text" maxlength="40" placeholder="e.g. Canteen lunch"
+              class="w-full rounded-lg border border-ink/20 px-3 py-2 focus:border-sea" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="amount" class="block text-sm font-medium mb-1">Amount (₹)</label>
+              <input id="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00"
+                class="w-full rounded-lg border border-ink/20 px-3 py-2 focus:border-sea" />
+            </div>
+            <div>
+              <label for="date" class="block text-sm font-medium mb-1">Date</label>
+              <input id="date" type="date" class="w-full rounded-lg border border-ink/20 px-3 py-2 focus:border-sea" />
+            </div>
+          </div>
+
+          <fieldset>
+            <legend class="block text-sm font-medium mb-1">Type</legend>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="cursor-pointer">
+                <input type="radio" name="type" value="expense" class="peer sr-only" checked />
+                <span class="block text-center rounded-lg border border-ink/20 py-2 peer-checked:bg-coral peer-checked:text-white peer-checked:border-coral peer-focus-visible:ring-2 peer-focus-visible:ring-sea">Expense</span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="type" value="income" class="peer sr-only" />
+                <span class="block text-center rounded-lg border border-ink/20 py-2 peer-checked:bg-sea peer-checked:text-white peer-checked:border-sea peer-focus-visible:ring-2 peer-focus-visible:ring-sea">Income</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <div>
+            <label for="category" class="block text-sm font-medium mb-1">Category</label>
+            <select id="category" class="w-full rounded-lg border border-ink/20 px-3 py-2 bg-white focus:border-sea"></select>
+          </div>
+
+          <p id="formError" class="text-sm text-coral min-h-[1.25rem]" role="alert"></p>
+
+          <button type="submit"
+            class="w-full bg-ink text-white font-semibold rounded-lg py-3 hover:bg-ink/90 active:scale-[.99]">
+            Add transaction
+          </button>
+        </form>
+      </section>
+
+      <!-- List + breakdown -->
+      <section class="lg:col-span-3 space-y-6">
+
+        <div class="bg-white rounded-2xl p-5" aria-labelledby="catTitle">
+          <h2 id="catTitle" class="font-display font-bold text-xl mb-3">Where your money goes</h2>
+          <div id="breakdown" class="space-y-3"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5" aria-labelledby="histTitle">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h2 id="histTitle" class="font-display font-bold text-xl">History</h2>
+            <div class="flex gap-2">
+              <label class="sr-only" for="filterType">Filter by type</label>
+              <select id="filterType" class="rounded-lg border border-ink/20 px-2 py-1.5 text-sm bg-white">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expenses</option>
+              </select>
+              <label class="sr-only" for="filterCat">Filter by category</label>
+              <select id="filterCat" class="rounded-lg border border-ink/20 px-2 py-1.5 text-sm bg-white"></select>
+            </div>
+          </div>
+
+          <ul id="list" class="divide-y divide-ink/10"></ul>
+          <p id="empty" class="hidden text-ink/60 py-6 text-center">No transactions yet. Add your first one on the left.</p>
+
+          <button id="clearAll" class="mt-4 text-sm text-coral underline underline-offset-2">Clear all transactions</button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-10 text-sm text-ink/60">Data is saved in your browser only.</footer>
+  </div>
+
+<script>
+  // ---------- Config ----------
+  const CATEGORIES = {
+    expense: ['Food', 'Transport', 'Books', 'Entertainment', 'Rent', 'Other'],
+    income:  ['Allowance', 'Salary', 'Scholarship', 'Gift', 'Other'],
+  };
+  const STORAGE_KEY = 'pocket-ledger-v1';
+
+  // ---------- State ----------
+  let transactions = load();
+
+  function load() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch (e) {
+      return []; // storage unavailable (private mode / sandbox)
+    }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); } catch (e) { /* ignore */ }
+  }
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const today = () => new Date().toISOString().slice(0, 10);
+
+  // ---------- Form setup ----------
+  function fillCategories() {
+    const type = document.querySelector('input[name="type"]:checked').value;
+    $('category').innerHTML = CATEGORIES[type].map((c) => `<option>${c}</option>`).join('');
+  }
+  function fillFilter() {
+    const all = [...new Set([...CATEGORIES.expense, ...CATEGORIES.income])];
+    $('filterCat').innerHTML = '<option value="all">All categories</option>' +
+      all.map((c) => `<option>${c}</option>`).join('');
+  }
+
+  document.querySelectorAll('input[name="type"]').forEach((r) => r.addEventListener('change', fillCategories));
+  $('date').value = today();
+  fillCategories();
+  fillFilter();
+
+  // ---------- Add ----------
+  $('txForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const desc = $('desc').value.trim();
+    const amount = parseFloat($('amount').value);
+    const date = $('date').value;
+
+    if (!desc) return showError('Enter a description.', 'desc');
+    if (!(amount > 0)) return showError('Enter an amount greater than 0.', 'amount');
+    if (!date) return showError('Pick a date.', 'date');
+
+    transactions.unshift({
+      id: Date.now(),
+      desc, amount, date,
+      type: document.querySelector('input[name="type"]:checked').value,
+      category: $('category').value,
+    });
+    save();
+    showError('');
+    $('desc').value = '';
+    $('amount').value = '';
+    $('desc').focus();
+    render();
+  });
+
+  function showError(msg, focusId) {
+    $('formError').textContent = msg;
+    if (focusId) $(focusId).focus();
+  }
+
+  // ---------- Delete / clear ----------
+  $('list').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-del]');
+    if (!btn) return;
+    transactions = transactions.filter((t) => t.id !== Number(btn.dataset.del));
+    save();
+    render();
+  });
+  $('clearAll').addEventListener('click', () => {
+    if (transactions.length && confirm('Delete all transactions? This cannot be undone.')) {
+      transactions = [];
+      save();
+      render();
+    }
+  });
+
+  // ---------- Filters ----------
+  $('filterType').addEventListener('change', render);
+  $('filterCat').addEventListener('change', render);
+
+  // ---------- Render ----------
+  function render() {
+    const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const balance = income - expense;
+
+    $('balance').textContent = (balance < 0 ? '-' : '') + money(Math.abs(balance));
+    $('income').textContent = money(income);
+    $('expense').textContent = money(expense);
+
+    // Split bar: share of income that has been spent
+    let spentPct = 0;
+    if (income > 0) spentPct = Math.min(100, Math.round((expense / income) * 100));
+    else if (expense > 0) spentPct = 100;
+    $('segSpent').style.width = spentPct + '%';
+    $('segLeft').style.width = (100 - spentPct) + '%';
+    $('spentLabel').textContent = `Spent ${spentPct}%`;
+    $('leftLabel').textContent = `Left ${100 - spentPct}%`;
+    $('splitWrap').setAttribute('aria-label', `${spentPct}% of income spent`);
+
+    renderBreakdown(expense);
+    renderList();
+  }
+
+  function renderBreakdown(totalExpense) {
+    const totals = {};
+    transactions.filter((t) => t.type === 'expense')
+      .forEach((t) => (totals[t.category] = (totals[t.category] || 0) + t.amount));
+    const rows = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+
+    $('breakdown').innerHTML = rows.length
+      ? rows.map(([cat, amt]) => {
+          const pct = Math.round((amt / totalExpense) * 100);
+          return `
+            <div>
+              <div class="flex justify-between text-sm mb-1"><span>${cat}</span><span>${money(amt)} (${pct}%)</span></div>
+              <div class="h-2 rounded-full bg-mist overflow-hidden"><div class="h-full bg-coral rounded-full" style="width:${pct}%"></div></div>
+            </div>`;
+        }).join('')
+      : '<p class="text-ink/60">Add an expense to see your spending by category.</p>';
+  }
+
+  function renderList() {
+    const ft = $('filterType').value;
+    const fc = $('filterCat').value;
+    const items = transactions
+      .filter((t) => (ft === 'all' || t.type === ft) && (fc === 'all' || t.category === fc))
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+
+    $('empty').classList.toggle('hidden', items.length > 0);
+    $('empty').textContent = transactions.length
+      ? 'No transactions match these filters.'
+      : 'No transactions yet. Add your first one on the left.';
+
+    $('list').innerHTML = items.map((t) => {
+      const isIncome = t.type === 'income';
+      return `
+        <li class="flex items-center justify-between gap-3 py-3">
+          <div class="min-w-0">
+            <p class="font-medium truncate">${escapeHTML(t.desc)}</p>
+            <p class="text-sm text-ink/60">${t.category} · ${new Date(t.date + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="font-semibold ${isIncome ? 'text-sea' : 'text-coral'}">${isIncome ? '+' : '-'}${money(t.amount)}</span>
+            <button data-del="${t.id}" aria-label="Delete ${escapeHTML(t.desc)}"
+              class="rounded-md px-2 py-1 text-sm text-ink/60 hover:bg-mist">Delete</button>
+          </div>
+        </li>`;
+    }).join('');
+  }
+
+  render();
+</script>
+</body>
+</html>
